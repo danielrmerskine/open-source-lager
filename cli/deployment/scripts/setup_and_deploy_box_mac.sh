@@ -245,9 +245,21 @@ fi
 # ---------------------------------------------------------------------------
 
 log "Phase 4/9: Homebrew and system packages"
+
+# Ensure Homebrew is on PATH (Apple Silicon installs to /opt/homebrew)
+if [ -x /opt/homebrew/bin/brew ]; then
+    eval "$(/opt/homebrew/bin/brew shellenv)"
+elif [ -x /usr/local/bin/brew ]; then
+    eval "$(/usr/local/bin/brew shellenv)"
+fi
+
 if ! command -v brew >/dev/null 2>&1; then
     log "  installing Homebrew (non-interactive)"
     NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    # Re-source after install
+    if [ -x /opt/homebrew/bin/brew ]; then
+        eval "$(/opt/homebrew/bin/brew shellenv)"
+    fi
 fi
 
 # brew is owned by the admin user, not lagerdata. That's fine — we only need
@@ -255,8 +267,6 @@ fi
 brew update
 brew install python@3.12 libusb hidapi pkg-config wget || true
 
-# Make sure /opt/homebrew/bin and /opt/homebrew/lib are reachable from the
-# lagerdata user's environment.
 BREW_PREFIX=$(brew --prefix)
 log "  Homebrew prefix: $BREW_PREFIX"
 

@@ -80,7 +80,11 @@ def _install_macos_box(ctx, ssh_host: str, version: str, yes: bool, repo_url: st
         ctx.exit(1)
 
     repo_url_flag = f" --repo-url {repo_url}" if repo_url else ""
-    remote_cmd = f"chmod +x {remote_path} && sudo {remote_path} --repo-branch {version}{repo_url_flag}"
+    # Run the script as the SSH user (not sudo). The script itself calls sudo
+    # internally for the specific commands that need root (user creation, pkg
+    # installs, plist bootstrapping). Running the whole script as root breaks
+    # Homebrew, which refuses to install/run as root.
+    remote_cmd = f"chmod +x {remote_path} && {remote_path} --repo-branch {version}{repo_url_flag}"
     click.secho("Running macOS box install (will prompt for sudo password on the box)...", fg='cyan')
     click.echo()
     install_result = subprocess.run(
